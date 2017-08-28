@@ -1,6 +1,5 @@
 """
-This is the Model File of MatchPyramid.
-This module is used to construct the MatchPyramid described in paper https://arxiv.org/abs/1602.06359.
+This is the Model File of MV-LSTM.
 """
 
 import sys
@@ -157,17 +156,12 @@ class Model():
     def init_step(self, sess):
         sess.run(tf.global_variables_initializer())
 
-
     def train_step(self, sess, merged, feed_dict):
-        #feed_dict[self.tensor_output] = self.make_tensor_output(sess, feed_dict[self.embed1], feed_dict[self.embed2])
-        #feed_dict[self.k_max_pooling] = self.make_sparse_layer(sess, feed_dict[self.tensor_output], self.k_num, self.config)
         _, train_accu, loss, summary = sess.run([self.train_model, self.accu, self.loss, merged],
                                        feed_dict=feed_dict)
         return loss, train_accu, summary
 
     def test_step(self, sess, merged, feed_dict):
-        #feed_dict[self.tensor_output] = self.make_tensor_output(sess, feed_dict[self.embed1], feed_dict[self.embed2])
-        #feed_dict[self.k_max_pooling] = self.make_sparse_layer(sess, feed_dict[self.tensor_output], self.k_num, self.config)
         _, test_accu, loss, precision, recall, F1, idx, summary = sess.run([self.train_model, self.accu, self.loss, self.precision, self.recall, self.F1, self.idx, merged],
                                                   feed_dict=feed_dict)
         return loss, test_accu, precision, recall, F1, idx, summary
