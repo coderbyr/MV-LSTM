@@ -1,6 +1,6 @@
-"""This is the Data Utils for Letor source code.
+"""This is the Data Utils for MV-LSTM source code.
 
-This module is used to read data from letor dataset.
+This module is used to read data from dataset.
 """
 
 __version__ = '0.2'
@@ -10,21 +10,21 @@ import sys
 import random
 import json
 import numpy as np
-import pytextnet as pt
+import process as pr
 
 
 config = json.loads(open(sys.argv[1]).read())
 data_path = config['data_dir']
 
-word_dict, iword_dict = pt.io.base.read_word_dict(filename=data_path + '/mp_word_dict.txt')
-query_data = pt.io.base.read_data(filename=data_path + '/qid_mp.txt')
-doc_data = pt.io.base.read_data(filename=data_path + '/docid_mp.txt')
+word_dict, iword_dict = pr.io.base.read_word_dict(filename=data_path + '/mp_word_dict.txt')
+query_data = pr.io.base.read_data(filename=data_path + '/qid_mp.txt')
+doc_data = pr.io.base.read_data(filename=data_path + '/docid_mp.txt')
 
-class PairGenerator():
+class TrainGenerator():
     def __init__(self, mention_embedding_file, entity_embedding_file, rel_file, config):
         self.train_mention, self.train_entity, self.test_mention, self.test_entity = \
-            pt.io.base.read_embedding(mention_embedding_file, entity_embedding_file)
-        self.rel = pt.io.base.read_relation(filename=rel_file)
+            pr.io.base.read_embedding(mention_embedding_file, entity_embedding_file)
+        self.rel = pr.io.base.read_relation(filename=rel_file)
         self.config = config
         self.l = len(self.rel)
         self.idx = []
@@ -36,7 +36,7 @@ class PairGenerator():
             excerpt = slice(start_idx, start_idx + config['batch_size'])
             yield self.idx[excerpt]
 
-    def get_batch2(self, idx_list):
+    def get_batch_data(self, idx_list):
         pair_list = [self.rel[i] for i in idx_list]
         train_mention = self.train_mention[idx_list]
         train_entity = self.train_entity[idx_list]
@@ -60,16 +60,16 @@ class PairGenerator():
                 Y[idx][1] = 1
         return X1, X2, Y, embed1, embed2
 
-class ListGenerator():
+class TestGenerator():
     def __init__(self, mention_embedding_file, entity_embedding_file, rel_file, config):
         self.train_mention, self.train_entity, self.test_mention, self.test_entity = \
-            pt.io.base.read_embedding(mention_embedding_file, entity_embedding_file)
-        self.rel = pt.io.base.read_relation(filename=rel_file)
+            pr.io.base.read_embedding(mention_embedding_file, entity_embedding_file)
+        self.rel = pr.io.base.read_relation(filename=rel_file)
         self.config = config
         self.l = len(self.rel)
         self.idx = [x for x in range(self.l)]
 
-    def get_batch2(self):
+    def get_test_data(self):
         random.shuffle(self.idx)
         idx_list = self.idx
         pair_list = [self.rel[i] for i in idx_list]
@@ -84,8 +84,6 @@ class ListGenerator():
         embed1 = np.zeros((self.l, config['data_maxlen'], config['embed_size']), dtype=np.float32)
         embed2 = np.zeros((self.l, config['data_maxlen'], config['embed_size']), dtype=np.float32)
 
-        # X1[:] = config['fill_word']
-        # X2[:] = config['fill_word']
         for idx, val in enumerate(pair_list):
             label, mention, entity = val
             embed1[idx] = test_mention[idx]
