@@ -5,7 +5,7 @@ usage:
     python train_global.py [config_file]
 """
 
-__version__ = '0.1'
+__version__ = '0.2'
 __author__ = 'Lipengyu'
 
 import re
@@ -26,7 +26,7 @@ word_dict = du.word_dict
 entity_dict = du.query_data
 mention_dict = du.doc_data
 
-pair_gen = du.PairGenerator(mention_embedding_file=config['mention_embedd_path'],
+train_gen = du.TrainGenerator(mention_embedding_file=config['mention_embedd_path'],
                             entity_embedding_file=config['entity_embedd_path'],
                             rel_file=config['training_path'], config=config)
 
@@ -79,7 +79,7 @@ for epoch in range(1, config['num_epochs']+1):
     train_total = 0.0
     start_time = time.time()
     train_batches = 0
-    batch_count = int(pair_gen.l/config['batch_size'])
+    batch_count = int(train_gen.l/config['batch_size'])
 
     #record session summary
     train_writer = tf.summary.FileWriter(config['log_path'] + '/train', sess.graph)
@@ -87,8 +87,8 @@ for epoch in range(1, config['num_epochs']+1):
     test_writer = tf.summary.FileWriter(config['log_path'] + '/test')
     merged = tf.summary.merge_all()
 
-    for pair_list in pair_gen.get_batch():
-        X1, X2, Y, embed1, embed2 = pair_gen.get_batch2(pair_list)
+    for train_list in train_gen.get_batch():
+        X1, X2, Y, embed1, embed2 = train_gen.get_batch_data(train_list)
         feed_dict = { model.X1: X1, model.X2: X2, model.Y: Y,
                       model.embed1: embed1, model.embed2: embed2, model.keep_prob: 0.5}
         num = len(X1)
@@ -102,11 +102,11 @@ for epoch in range(1, config['num_epochs']+1):
         # if train_batches%10 == 0:
         #     print "train %d batch, time %s" % (train_batches, time.time() - start_time)
     print('train: %d/%d loss: %.4f, acc: %.2f%%, time: %.2fs' % (
-         train_batches * config['batch_size'], pair_gen.l,
+         train_batches * config['batch_size'], train_gen.l,
          train_err, train_corr * 100 / train_total, time.time() - start_time))
 
     ##validation 
-    list_gen = du.ListGenerator(mention_embedding_file=config['mention_embedd_path'],
+    test_gen = du.TestGenerator(mention_embedding_file=config['mention_embedd_path'],
                                 entity_embedding_file=config['entity_embedd_path'],
                                 rel_file=config['validation_path'],
                                 config=config)
@@ -115,7 +115,7 @@ for epoch in range(1, config['num_epochs']+1):
     val_total = 0.0
     start_time = time.time()
     val_num = 0
-    X1, X2, Y, embed1, embed2 = list_gen.get_batch2()
+    X1, X2, Y, embed1, embed2 = test_gen.get_test_data()
     feed_dict = {model.X1: X1, model.X2: X2, model.Y: Y,
                  model.embed1: embed1, model.embed2: embed2, model.keep_prob: 0.8}
     num = len(X1)
@@ -124,12 +124,12 @@ for epoch in range(1, config['num_epochs']+1):
     val_corr += num*val_accu
     val_total += num
     validation_writer.add_summary(summary, epoch)
-    if epoch == 10:
+    if epoch == config['num_epochs']:
         savePreditions(word_dict, X1, X2, Y, idx_list)
     print('validation: %d, loss: %.4f, acc: %.2f%%, precision: %.2f%%, recall: %.2f%%, f1-score: %.2f%%, time: %.2fs' % (
          val_total, val_err, val_corr * 100 / val_total, precision*100, recall*100, f1*100, time.time() - start_time))
 
-    test_gen = du.ListGenerator(mention_embedding_file=config['mention_embedd_path'],
+    test_gen = du.TestGenerator(mention_embedding_file=config['mention_embedd_path'],
                                 entity_embedding_file=config['entity_embedd_path'],
                                 rel_file=config['test_path'],
                                 config=config)
@@ -138,7 +138,7 @@ for epoch in range(1, config['num_epochs']+1):
     test_total = 0.0
     start_time = time.time()
     test_num = 0
-    X1, X2, Y, embed1, embed2 = list_gen.get_batch2()
+    X1, X2, Y, embed1, embed2 = test_gen.get_test_data()
     feed_dict = {model.X1: X1, model.X2: X2, model.Y: Y,
                  model.embed1: embed1, model.embed2: embed2, model.keep_prob: 0.8}
     num = len(X1)
