@@ -1,4 +1,4 @@
 #!/usr/bin/bash
 
-python train_global.py config/model.config
+python train_global.py model.config
 
